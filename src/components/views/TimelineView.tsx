@@ -69,7 +69,7 @@ export function TimelineView() {
           ? { 
               ...event, 
               status: 'postponed',
-              scheduledTime: new Date(event.scheduledTime.getTime() + 30 * 60000)
+              scheduledTime: new Date(new Date(event.scheduledTime).getTime() + 30 * 60000)
             }
           : event
       )
@@ -141,7 +141,7 @@ export function TimelineView() {
                 {nextEvent.title}
               </p>
               <p className="text-sm text-muted-foreground">
-                {format(nextEvent.scheduledTime, 'HH:mm')}
+                {format(new Date(nextEvent.scheduledTime), 'HH:mm')}
               </p>
             </div>
           )}

@@ -49,7 +49,9 @@ export function sortTimelineEvents(events: TimelineEvent[]): TimelineEvent[] {
     const priorityDiff = priorityWeight[b.priority] - priorityWeight[a.priority]
     if (priorityDiff !== 0) return priorityDiff
     
-    return a.scheduledTime.getTime() - b.scheduledTime.getTime()
+    const aTime = new Date(a.scheduledTime).getTime()
+    const bTime = new Date(b.scheduledTime).getTime()
+    return aTime - bTime
   })
 }
 
@@ -176,8 +178,8 @@ export function getGreeting(): string {
   return 'Boa noite'
 }
 
-export function formatTime(date: Date): string {
-  return format(date, 'HH:mm')
+export function formatTime(date: Date | string): string {
+  return format(new Date(date), 'HH:mm')
 }
 
 export function formatTimeAgo(date: Date): string {
@@ -203,7 +205,7 @@ export function redistributeEvents(
   fromTime: Date = new Date()
 ): TimelineEvent[] {
   const lateEvents = events.filter(e => e.status === 'late')
-  const pendingEvents = events.filter(e => e.status === 'pending' && isAfter(e.scheduledTime, fromTime))
+  const pendingEvents = events.filter(e => e.status === 'pending' && isAfter(new Date(e.scheduledTime), fromTime))
   
   const criticalLate = lateEvents.filter(e => e.priority === 'critical')
   const normalLate = lateEvents.filter(e => e.priority !== 'critical')
