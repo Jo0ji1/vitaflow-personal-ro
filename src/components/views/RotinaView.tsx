@@ -1,78 +1,88 @@
 import { useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { MedicamentosView } from '@/components/rotina/MedicamentosView'
+import { HabitosView } from '@/components/rotina/HabitosView'
 import { 
   Pill, 
-  Lightning, 
   Drop, 
   ForkKnife, 
   Barbell, 
-  CheckCircle,
-  Plus
+  CheckCircle
 } from '@phosphor-icons/react'
+import { Medication, Habit } from '@/lib/types'
 
-type RotinaSection = 'medicamentos' | 'suplementos' | 'hidratacao' | 'refeicoes' | 'treinos' | 'habitos'
-
-const sections = [
-  {
-    id: 'medicamentos' as RotinaSection,
-    title: 'Medicamentos',
-    description: 'Gerencie medicações e doses',
-    icon: Pill,
-    color: 'text-destructive',
-    bgColor: 'bg-destructive/10',
-    count: 3
-  },
-  {
-    id: 'suplementos' as RotinaSection,
-    title: 'Suplementos',
-    description: 'Vitaminas e suplementação',
-    icon: Lightning,
-    color: 'text-warning',
-    bgColor: 'bg-warning/10',
-    count: 5
-  },
-  {
-    id: 'hidratacao' as RotinaSection,
-    title: 'Hidratação',
-    description: 'Meta diária de água',
-    icon: Drop,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    count: 1
-  },
-  {
-    id: 'refeicoes' as RotinaSection,
-    title: 'Refeições',
-    description: 'Planejamento alimentar',
-    icon: ForkKnife,
-    color: 'text-success',
-    bgColor: 'bg-success/10',
-    count: 6
-  },
-  {
-    id: 'treinos' as RotinaSection,
-    title: 'Treinos',
-    description: 'Biblioteca de exercícios',
-    icon: Barbell,
-    color: 'text-accent',
-    bgColor: 'bg-accent/10',
-    count: 4
-  },
-  {
-    id: 'habitos' as RotinaSection,
-    title: 'Hábitos',
-    description: 'Rotinas e consistência',
-    icon: CheckCircle,
-    color: 'text-foreground',
-    bgColor: 'bg-muted',
-    count: 7
-  }
-]
+type RotinaSection = 'medicamentos' | 'hidratacao' | 'refeicoes' | 'treinos' | 'habitos'
 
 export function RotinaView() {
   const [selectedSection, setSelectedSection] = useState<RotinaSection | null>(null)
+  const [medications] = useKV<Medication[]>('medications', [])
+  const [habits] = useKV<Habit[]>('habits', [])
+
+  const getMedicationCount = () => {
+    return (medications || []).filter(m => m.category === 'medication').length
+  }
+
+  const getSupplementCount = () => {
+    return (medications || []).filter(m => m.category === 'supplement' || m.category === 'vitamin').length
+  }
+
+  const sections = [
+    {
+      id: 'medicamentos' as RotinaSection,
+      title: 'Medicamentos & Suplementos',
+      description: 'Gerencie medicações, vitaminas e doses',
+      icon: Pill,
+      color: 'text-destructive',
+      bgColor: 'bg-destructive/10',
+      count: (medications || []).length
+    },
+    {
+      id: 'hidratacao' as RotinaSection,
+      title: 'Hidratação',
+      description: 'Meta diária de água',
+      icon: Drop,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+      count: 1
+    },
+    {
+      id: 'refeicoes' as RotinaSection,
+      title: 'Refeições',
+      description: 'Planejamento alimentar',
+      icon: ForkKnife,
+      color: 'text-success',
+      bgColor: 'bg-success/10',
+      count: 0
+    },
+    {
+      id: 'treinos' as RotinaSection,
+      title: 'Treinos',
+      description: 'Biblioteca de exercícios',
+      icon: Barbell,
+      color: 'text-accent',
+      bgColor: 'bg-accent/10',
+      count: 0
+    },
+    {
+      id: 'habitos' as RotinaSection,
+      title: 'Hábitos',
+      description: 'Rotinas e consistência',
+      icon: CheckCircle,
+      color: 'text-foreground',
+      bgColor: 'bg-muted',
+      count: (habits || []).length
+    }
+  ]
+
+  if (selectedSection === 'medicamentos') {
+    return <MedicamentosView onBack={() => setSelectedSection(null)} />
+  }
+
+  if (selectedSection === 'habitos') {
+    return <HabitosView onBack={() => setSelectedSection(null)} />
+  }
 
   if (selectedSection) {
     return (
@@ -80,14 +90,12 @@ export function RotinaView() {
         <div className="max-w-screen-lg mx-auto">
           <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
             <div className="p-4">
-              <Button 
-                variant="ghost" 
-                size="sm"
+              <button 
+                className="text-sm text-muted-foreground hover:text-foreground mb-2 flex items-center gap-1"
                 onClick={() => setSelectedSection(null)}
-                className="mb-2"
               >
                 ← Voltar
-              </Button>
+              </button>
               <h1 className="text-2xl font-bold">
                 {sections.find(s => s.id === selectedSection)?.title}
               </h1>
@@ -95,15 +103,16 @@ export function RotinaView() {
           </div>
           
           <div className="p-4">
-            <div className="text-center py-16">
-              <p className="text-muted-foreground mb-4">
-                Módulo em desenvolvimento
-              </p>
-              <Button variant="outline">
-                <Plus size={16} className="mr-2" />
-                Adicionar {sections.find(s => s.id === selectedSection)?.title}
-              </Button>
-            </div>
+            <Card>
+              <CardContent className="pt-16 pb-16 text-center">
+                <p className="text-muted-foreground mb-2">
+                  Módulo em desenvolvimento
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Este módulo será implementado em breve
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -145,7 +154,9 @@ export function RotinaView() {
                         </CardDescription>
                       </div>
                     </div>
-                    <Badge variant="secondary">{section.count}</Badge>
+                    {section.count > 0 && (
+                      <Badge variant="secondary">{section.count}</Badge>
+                    )}
                   </div>
                 </CardHeader>
               </Card>
