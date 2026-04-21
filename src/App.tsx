@@ -1,41 +1,25 @@
 import { useState } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { TimelineView } from '@/components/views/TimelineView'
-import { PlaceholderView } from '@/components/views/PlaceholderView'
+import { RotinaView } from '@/components/views/RotinaView'
+import { PlanejarView } from '@/components/views/PlanejarView'
+import { ProgressoView } from '@/components/views/ProgressoView'
+import { PerfilView } from '@/components/views/PerfilView'
 import { BottomNav } from '@/components/navigation/BottomNav'
+import { useKV } from '@github/spark/hooks'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('hoje')
+  const [activeTab, setActiveTab] = useKV<string>('active-tab', 'hoje')
 
   return (
     <>
       {activeTab === 'hoje' && <TimelineView />}
-      {activeTab === 'rotina' && (
-        <PlaceholderView 
-          title="Rotina" 
-          description="Gerencie medicamentos, suplementos, refeições, treinos e hábitos." 
-        />
-      )}
-      {activeTab === 'planejar' && (
-        <PlaceholderView 
-          title="Planejar" 
-          description="Planeje sua rotina para os próximos dias e semanas." 
-        />
-      )}
-      {activeTab === 'progresso' && (
-        <PlaceholderView 
-          title="Progresso" 
-          description="Acompanhe sua aderência, evolução e insights." 
-        />
-      )}
-      {activeTab === 'perfil' && (
-        <PlaceholderView 
-          title="Perfil" 
-          description="Configurações, metas e preferências." 
-        />
-      )}
+      {activeTab === 'rotina' && <RotinaView />}
+      {activeTab === 'planejar' && <PlanejarView />}
+      {activeTab === 'progresso' && <ProgressoView />}
+      {activeTab === 'perfil' && <PerfilView />}
       
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab || 'hoje'} onTabChange={setActiveTab} />
       <Toaster />
     </>
   )
