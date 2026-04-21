@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { MedicamentosView } from '@/components/rotina/MedicamentosView'
 import { HabitosView } from '@/components/rotina/HabitosView'
+import { RefeicoesView } from '@/components/rotina/RefeicoesView'
+import { TreinosView } from '@/components/rotina/TreinosView'
+import { HidratacaoView } from '@/components/rotina/HidratacaoView'
 import { 
   Pill, 
   Drop, 
@@ -82,6 +85,18 @@ export function RotinaView() {
 
   if (selectedSection === 'habitos') {
     return <HabitosView onBack={() => setSelectedSection(null)} />
+  }
+
+  if (selectedSection === 'refeicoes') {
+    return <RefeicoesView onBack={() => setSelectedSection(null)} />
+  }
+
+  if (selectedSection === 'treinos') {
+    return <TreinosView onBack={() => setSelectedSection(null)} />
+  }
+
+  if (selectedSection === 'hidratacao') {
+    return <HidratacaoView onBack={() => setSelectedSection(null)} />
   }
 
   if (selectedSection) {
