@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { TimelineEvent, WaterLog } from '@/lib/types'
 import { getGreeting, sortTimelineEvents, getTodayDateString, calculateWaterProgress } from '@/lib/timeline-helpers'
+import { generateMockTimelineEvents, generateMockWaterLogs } from '@/lib/mock-data'
 import { ArrowClockwise, Sparkle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -18,6 +19,15 @@ export function TimelineView() {
   const [waterGoal] = useKV<number>('water-goal', 2500)
   const [todayScore] = useKV<number>('today-score', 0)
   const [, setLastSync] = useState(new Date())
+  const [hasInitialized, setHasInitialized] = useState(false)
+
+  useEffect(() => {
+    if (!hasInitialized && (!events || events.length === 0)) {
+      setEvents(generateMockTimelineEvents())
+      setWaterLogs(generateMockWaterLogs())
+      setHasInitialized(true)
+    }
+  }, [hasInitialized, events, setEvents, setWaterLogs])
 
   useEffect(() => {
     const interval = setInterval(() => {
