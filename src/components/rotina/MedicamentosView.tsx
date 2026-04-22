@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { v4 as uuid } from 'uuid'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -56,7 +57,7 @@ export function MedicamentosView({ onBack }: MedicamentosViewProps) {
     }
 
     const medication: Medication = {
-      id: editingId || `med-${Date.now()}`,
+      id: editingId || `med-${uuid()}`,
       userId: 'current-user',
       name: formData.name,
       category: formData.category,
@@ -272,6 +273,7 @@ export function MedicamentosView({ onBack }: MedicamentosViewProps) {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
+                                aria-label={`Remover horário ${time}`}
                                 onClick={() => removeTime(index)}
                               >
                                 <Trash size={16} />
@@ -388,6 +390,7 @@ export function MedicamentosView({ onBack }: MedicamentosViewProps) {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={`Editar ${medication.name}`}
                       onClick={() => handleEdit(medication)}
                     >
                       <Pencil size={16} />
@@ -395,6 +398,7 @@ export function MedicamentosView({ onBack }: MedicamentosViewProps) {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={`Excluir ${medication.name}`}
                       onClick={() => handleDelete(medication.id)}
                     >
                       <Trash size={16} />

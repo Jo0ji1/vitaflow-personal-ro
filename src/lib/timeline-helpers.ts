@@ -9,7 +9,7 @@ import {
   WorkoutSession, 
   HabitLog 
 } from './types'
-import { format, isAfter, isBefore, differenceInMinutes, addMinutes, startOfDay, endOfDay } from 'date-fns'
+import { format, differenceInMinutes, isAfter, addMinutes } from 'date-fns'
 
 export function getEventStatus(scheduledTime: Date, currentTime: Date = new Date()): EventStatus {
   const diffMinutes = differenceInMinutes(currentTime, scheduledTime)
@@ -42,7 +42,8 @@ export function sortTimelineEvents(events: TimelineEvent[]): TimelineEvent[] {
     skipped: 1,
   }
   
-  return events.sort((a, b) => {
+  // Copia o array antes de ordenar para não mutar o input (evita side-effect em useMemo).
+  return [...events].sort((a, b) => {
     const statusDiff = statusWeight[b.status] - statusWeight[a.status]
     if (statusDiff !== 0) return statusDiff
     

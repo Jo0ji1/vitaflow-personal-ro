@@ -3,7 +3,6 @@ import { addHours, addMinutes, subHours, subMinutes, startOfDay } from 'date-fns
 
 export function generateMockTimelineEvents(): TimelineEvent[] {
   const now = new Date()
-  const today = startOfDay(now)
   
   return [
     {

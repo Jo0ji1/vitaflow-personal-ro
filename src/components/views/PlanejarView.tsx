@@ -8,9 +8,11 @@ import { CalendarBlank, CalendarCheck, Plus } from '@phosphor-icons/react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+type PlanejarViewMode = 'dia' | 'semana' | 'mes'
+
 export function PlanejarView() {
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [view, setView] = useState<'dia' | 'semana' | 'mes'>('semana')
+  const [view, setView] = useState<PlanejarViewMode>('semana')
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -25,7 +27,7 @@ export function PlanejarView() {
         </div>
         
         <div className="p-4 space-y-4">
-          <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+          <Tabs value={view} onValueChange={(v) => setView(v as PlanejarViewMode)}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="dia">Dia</TabsTrigger>
               <TabsTrigger value="semana">Semana</TabsTrigger>

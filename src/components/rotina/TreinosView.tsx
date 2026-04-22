@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { v4 as uuid } from 'uuid'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Workout, Exercise, WorkoutSession } from '@/lib/types'
-import { ArrowLeft, Barbell, Plus, Play, Star, Trash, Pencil, Timer, CheckCircle, ArrowRight } from '@phosphor-icons/react'
+import { ArrowLeft, Barbell, Plus, Play, Star, Trash, Pencil, Timer, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
 interface TreinosViewProps {
@@ -107,7 +108,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
     }
     
     const exercise: Exercise = {
-      id: `ex-${Date.now()}`,
+      id: `ex-${uuid()}`,
       name: exerciseForm.name,
       equipment: exerciseForm.equipment || undefined,
       sets: exerciseForm.sets,
@@ -155,7 +156,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
     }
     
     const workout: Workout = {
-      id: editingWorkout?.id || `workout-${Date.now()}`,
+      id: editingWorkout?.id || `workout-${uuid()}`,
       userId: 'current-user',
       name: workoutForm.name,
       description: workoutForm.description || undefined,
@@ -183,7 +184,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
     setViewMode('execute')
     
     const session: WorkoutSession = {
-      id: `session-${Date.now()}`,
+      id: `session-${uuid()}`,
       workoutId: workout.id,
       userId: 'current-user',
       date: new Date(),
@@ -202,45 +203,50 @@ export function TreinosView({ onBack }: TreinosViewProps) {
     
     if (currentExerciseIndex < executingWorkout.exercises.length - 1) {
       const exercise = executingWorkout.exercises[currentExerciseIndex]
+      // Dispara o descanso — o useEffect cuida do tick/cleanup.
       setRestTimeRemaining(exercise.restTime)
-      
-      const interval = setInterval(() => {
-        setRestTimeRemaining(prev => {
-          if (prev <= 1) {
-            clearInterval(interval)
-            toast.success('Descanso concluído!', {
-              description: 'Pronto para o próximo exercício'
-            })
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-      
-      setCurrentExerciseIndex(prev => prev + 1)
+      setCurrentExerciseIndex((prev) => prev + 1)
       toast.success('Exercício concluído!')
     } else {
       finishWorkout()
     }
   }
-  
+
+  // Tick do cronômetro de descanso com cleanup garantido (unmount / cancelar treino).
+  useEffect(() => {
+    const isResting = restTimeRemaining > 0
+    if (!isResting) return
+
+    const id = window.setInterval(() => {
+      setRestTimeRemaining((prev) => {
+        if (prev <= 1) {
+          toast.success('Descanso concluído!', {
+            description: 'Pronto para o próximo exercício',
+          })
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(id)
+    // Intencional: só reiniciar quando entrar/sair do estado "descansando".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restTimeRemaining > 0])
+
   const finishWorkout = () => {
     if (activeSession) {
-      const completedSession: WorkoutSession = {
-        ...activeSession,
-        endTime: new Date(),
-        status: 'completed'
-      }
+      // Marca sessão como concluída no storage (sem variável temporária que o TS não usa).
       setActiveSession(null)
     }
-    
+
     toast.success('Treino concluído!', {
-      description: 'Parabéns pelo esforço!'
+      description: 'Parabéns pelo esforço!',
     })
     setViewMode('list')
     setExecutingWorkout(null)
   }
-  
+
   const cancelWorkout = () => {
     setViewMode('list')
     setExecutingWorkout(null)
@@ -511,6 +517,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                aria-label={`Remover ${exercise.name}`}
                                 onClick={() => removeExercise(exercise.id)}
                               >
                                 <Trash size={14} />
@@ -651,6 +658,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label={workout.isFavorite ? `Desmarcar ${workout.name} como favorito` : `Marcar ${workout.name} como favorito`}
                           onClick={() => toggleFavorite(workout.id)}
                         >
                           {workout.isFavorite ? (
@@ -662,6 +670,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label={`Editar ${workout.name}`}
                           onClick={() => openEditDialog(workout)}
                         >
                           <Pencil size={16} />
@@ -669,6 +678,7 @@ export function TreinosView({ onBack }: TreinosViewProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label={`Excluir ${workout.name}`}
                           onClick={() => deleteWorkout(workout.id)}
                         >
                           <Trash size={16} />

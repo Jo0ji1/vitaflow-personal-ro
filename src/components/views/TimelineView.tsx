@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { v4 as uuid } from 'uuid'
 import { useKV } from '@github/spark/hooks'
 import { TimelineCard } from '@/components/timeline/TimelineCard'
 import { WaterTracker } from '@/components/water/WaterTracker'
@@ -100,7 +101,7 @@ export function TimelineView() {
         )
       } else {
         const newLog: HabitLog = {
-          id: `log-${Date.now()}`,
+          id: `log-${uuid()}`,
           habitId: event.referenceId,
           date: today,
           completed: true,
@@ -134,7 +135,7 @@ export function TimelineView() {
     })
   }
   
-  const handlePostponeEvent = (id: string) => {
+  const handlePostponeEvent = (_id: string) => {
     toast.info('Função de reagendar em desenvolvimento', {
       description: 'Em breve você poderá reagendar itens.'
     })
@@ -142,7 +143,7 @@ export function TimelineView() {
   
   const handleAddWater = (amount: number) => {
     const newLog: WaterLog = {
-      id: `water-${Date.now()}`,
+      id: `water-${uuid()}`,
       userId: 'current-user',
       amount,
       timestamp: new Date(),

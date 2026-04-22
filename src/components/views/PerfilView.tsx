@@ -1,19 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { 
+import {
   User,
   Bell,
   Palette,
   Target,
   Moon,
   Sun,
+  Desktop,
   Download,
-  Shield
+  Shield,
 } from '@phosphor-icons/react'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
@@ -22,8 +24,15 @@ export function PerfilView() {
   const [userName, setUserName] = useKV<string>('user-name', 'Usuário')
   const [waterGoal, setWaterGoal] = useKV<number>('water-goal', 2500)
   const [notificationsEnabled, setNotificationsEnabled] = useKV<boolean>('notifications-enabled', true)
-  const [theme, setTheme] = useKV<'light' | 'dark'>('theme', 'light')
-  
+
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // Evita mismatch de hidratação — o tema só é conhecido após mount.
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const [tempName, setTempName] = useState(userName || 'Usuário')
   const [tempWaterGoal, setTempWaterGoal] = useState(waterGoal || 2500)
 
@@ -31,17 +40,29 @@ export function PerfilView() {
     setUserName(tempName)
     toast.success('Perfil atualizado!')
   }
-  
+
   const handleSaveGoals = () => {
     setWaterGoal(tempWaterGoal)
     toast.success('Metas atualizadas!')
   }
-  
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(newTheme)
-    document.documentElement.classList.toggle('dark')
-    toast.success(`Tema ${newTheme === 'dark' ? 'escuro' : 'claro'} ativado`)
+
+  const themeLabel =
+    theme === 'system' ? 'Sistema' : resolvedTheme === 'dark' ? 'Escuro' : 'Claro'
+
+  const ThemeIcon = !mounted
+    ? Desktop
+    : theme === 'system'
+    ? Desktop
+    : resolvedTheme === 'dark'
+    ? Moon
+    : Sun
+
+  const cycleTheme = () => {
+    const order = ['light', 'dark', 'system'] as const
+    const current = (theme as (typeof order)[number]) ?? 'system'
+    const next = order[(order.indexOf(current) + 1) % order.length]
+    setTheme(next)
+    toast.success(`Tema: ${next === 'system' ? 'sistema' : next === 'dark' ? 'escuro' : 'claro'}`)
   }
 
   return (
@@ -60,7 +81,7 @@ export function PerfilView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User size={20} weight="fill" />
+                <User size={20} weight="fill" aria-hidden />
                 Informações Pessoais
               </CardTitle>
               <CardDescription>
@@ -87,7 +108,7 @@ export function PerfilView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Target size={20} weight="fill" />
+                <Target size={20} weight="fill" aria-hidden />
                 Metas Diárias
               </CardTitle>
               <CardDescription>
@@ -100,6 +121,9 @@ export function PerfilView() {
                 <Input
                   id="water-goal"
                   type="number"
+                  inputMode="numeric"
+                  min={500}
+                  max={6000}
                   value={tempWaterGoal}
                   onChange={(e) => setTempWaterGoal(Number(e.target.value))}
                   placeholder="2500"
@@ -118,7 +142,7 @@ export function PerfilView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Bell size={20} weight="fill" />
+                <Bell size={20} weight="fill" aria-hidden />
                 Notificações
               </CardTitle>
               <CardDescription>
@@ -128,14 +152,16 @@ export function PerfilView() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Notificações Ativas</Label>
+                  <Label htmlFor="notifications-toggle">Notificações Ativas</Label>
                   <p className="text-sm text-muted-foreground">
                     Receber lembretes de rotina
                   </p>
                 </div>
                 <Switch
-                  checked={notificationsEnabled}
+                  id="notifications-toggle"
+                  checked={notificationsEnabled ?? true}
                   onCheckedChange={setNotificationsEnabled}
+                  aria-label="Ativar notificações"
                 />
               </div>
               
@@ -153,7 +179,7 @@ export function PerfilView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Palette size={20} weight="fill" />
+                <Palette size={20} weight="fill" aria-hidden />
                 Aparência
               </CardTitle>
               <CardDescription>
@@ -165,19 +191,16 @@ export function PerfilView() {
                 <div className="space-y-0.5">
                   <Label>Tema</Label>
                   <p className="text-sm text-muted-foreground">
-                    {theme === 'dark' ? 'Escuro' : 'Claro'}
+                    {mounted ? themeLabel : 'Carregando…'}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={toggleTheme}
+                  onClick={cycleTheme}
+                  aria-label={`Alternar tema. Atual: ${mounted ? themeLabel : 'sistema'}`}
                 >
-                  {theme === 'dark' ? (
-                    <Sun size={20} weight="fill" />
-                  ) : (
-                    <Moon size={20} weight="fill" />
-                  )}
+                  <ThemeIcon size={20} weight="fill" aria-hidden />
                 </Button>
               </div>
             </CardContent>
@@ -186,7 +209,7 @@ export function PerfilView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield size={20} weight="fill" />
+                <Shield size={20} weight="fill" aria-hidden />
                 Dados e Privacidade
               </CardTitle>
               <CardDescription>
@@ -195,7 +218,7 @@ export function PerfilView() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Button variant="outline" className="w-full justify-start">
-                <Download size={16} className="mr-2" />
+                <Download size={16} className="mr-2" aria-hidden />
                 Exportar Dados
               </Button>
               

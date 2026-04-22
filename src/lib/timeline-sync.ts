@@ -1,116 +1,134 @@
-import { TimelineEvent, Medication, Meal, Habit, EventStatus, EventPriority } from './types'
 import { format, isPast, addMinutes } from 'date-fns'
+import {
+  TimelineEvent,
+  Medication,
+  Meal,
+  Habit,
+  EventStatus,
+  EventPriority,
+  MealType,
+} from './types'
 
-function getMealTypeName(type: string): string {
-  const names: Record<string, string> = {
-    breakfast: 'Café da Manhã',
-    lunch: 'Almoço',
-    dinner: 'Jantar',
-    snack: 'Lanche',
-    'pre-workout': 'Pré-Treino',
-    'post-workout': 'Pós-Treino',
-    custom: 'Refeição'
+const MEAL_TYPE_NAMES: Record<MealType, string> = {
+  breakfast: 'Café da Manhã',
+  lunch: 'Almoço',
+  dinner: 'Jantar',
+  snack: 'Lanche',
+  'pre-workout': 'Pré-Treino',
+  'post-workout': 'Pós-Treino',
+  custom: 'Refeição',
+}
+
+export function getMealTypeName(type: MealType): string {
+  return MEAL_TYPE_NAMES[type] ?? 'Refeição'
+}
+
+/**
+ * Dado um horário "HH:mm", retorna uma Date de hoje naquele horário.
+ */
+function buildTodayTime(time: string): Date {
+  const [hours, minutes] = time.split(':').map(Number)
+  const date = new Date()
+  date.setHours(hours ?? 0, minutes ?? 0, 0, 0)
+  return date
+}
+
+/**
+ * Calcula status a partir do horário agendado: `late` se passou mais de 30min.
+ * Mantém o status atual se já estiver definido (`completed`, `skipped`, etc).
+ */
+function deriveStatus(scheduledTime: Date, currentStatus: EventStatus = 'pending'): EventStatus {
+  if (currentStatus !== 'pending') return currentStatus
+  const now = new Date()
+  if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30)) {
+    return 'late'
   }
-  return names[type] || 'Refeição'
+  return 'pending'
 }
 
 export function generateTimelineEventsFromMedications(medications: Medication[]): TimelineEvent[] {
   const events: TimelineEvent[] = []
-  const today = format(new Date(), 'yyyy-MM-dd')
-  
-  medications.forEach(medication => {
-    medication.times.forEach(time => {
-      const scheduledTime = new Date()
-      const [hours, minutes] = time.split(':').map(Number)
-      scheduledTime.setHours(hours, minutes, 0, 0)
-      const now = new Date()
-      
-      let status: EventStatus = 'pending'
-      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30)) {
-        status = 'late'
-      }
-      
+
+  medications.forEach((medication) => {
+    medication.times.forEach((time) => {
+      const scheduledTime = buildTodayTime(time)
+      const status = deriveStatus(scheduledTime)
+
+      const priority: EventPriority =
+        medication.category === 'medication' ? 'critical' : 'high'
+
       events.push({
         id: `medication-${medication.id}-${time}`,
         type: 'medication',
         referenceId: medication.id,
         title: medication.name,
-        subtitle: `${medication.dosage} ${medication.unit}`,
+        subtitle: `${medication.dosage}${medication.unit}`,
         scheduledTime,
         status,
-        priority: 'high',
+        priority,
         category: medication.category,
         metadata: {
-          instructions: medication.instructions
-        }
+          dosage: medication.dosage,
+          unit: medication.unit,
+          instructions: medication.instructions,
+        },
       })
     })
   })
-  
+
   return events
 }
 
 export function generateTimelineEventsFromMeals(meals: Meal[]): TimelineEvent[] {
-  const events: TimelineEvent[] = []
   const today = format(new Date(), 'yyyy-MM-dd')
-  
-  const todaysMeals = meals
-    .filter(meal => meal.date === today && meal.status !== 'completed')
-    .map(meal => {
-      const scheduledTime = new Date()
-      const [hours, minutes] = meal.scheduledTime.split(':').map(Number)
-      scheduledTime.setHours(hours, minutes, 0, 0)
-      const now = new Date()
-      
-      let status: EventStatus = meal.status
-      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30) && status === 'pending') {
-        status = 'late'
-      }
-      
-      const totalCalories = meal.items.reduce((sum, item) => sum + (item.calories || 0), 0)
-      
-      return {
+
+  return meals
+    .filter((meal) => meal.date === today)
+    .map((meal) => {
+      const scheduledTime = buildTodayTime(meal.scheduledTime)
+      const status = deriveStatus(scheduledTime, meal.status)
+      const totalCalories = meal.items.reduce((sum, item) => sum + (item.calories ?? 0), 0)
+
+      const event: TimelineEvent = {
         id: `meal-${meal.id}`,
-        type: 'meal' as const,
+        type: 'meal',
         referenceId: meal.id,
         title: getMealTypeName(meal.type),
-        subtitle: totalCalories > 0 ? `${totalCalories} calorias` : `${meal.items.length} itens`,
+        subtitle:
+          totalCalories > 0
+            ? `${totalCalories} calorias`
+            : `${meal.items.length} ite${meal.items.length === 1 ? 'm' : 'ns'}`,
         scheduledTime,
         status,
-        priority: 'normal' as EventPriority,
+        priority: 'normal',
         category: meal.type,
         metadata: {
-          items: meal.items
-        }
+          items: meal.items,
+          calories: totalCalories,
+        },
       }
+
+      return event
     })
-  
-  return todaysMeals
 }
 
 export function generateTimelineEventsFromHabits(habits: Habit[]): TimelineEvent[] {
-  const events: TimelineEvent[] = []
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  
-  habits.forEach(habit => {
-    const shouldShowToday = 
-      habit.frequency.type === 'daily' ||
-      (habit.frequency.daysOfWeek && habit.frequency.daysOfWeek.includes(dayOfWeek))
-    
-    if (shouldShowToday && habit.reminderTime) {
-      const [hours, minutes] = habit.reminderTime.split(':').map(Number)
-      const scheduledTime = new Date()
-      scheduledTime.setHours(hours, minutes, 0, 0)
-      
-      const now = new Date()
-      let status: EventStatus = 'pending'
-      
-      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30)) {
-        status = 'late'
-      }
-      
-      events.push({
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+
+  return habits
+    .filter((habit) => {
+      const { type, daysOfWeek } = habit.frequency
+      if (type === 'daily') return true
+      if (type === 'weekly' && daysOfWeek) return daysOfWeek.includes(dayOfWeek)
+      return true
+    })
+    .filter((habit) => !!habit.reminderTime)
+    .map((habit) => {
+      const scheduledTime = buildTodayTime(habit.reminderTime as string)
+      const status = deriveStatus(scheduledTime)
+
+      const event: TimelineEvent = {
         id: `habit-${habit.id}`,
         type: 'habit',
         referenceId: habit.id,
@@ -122,32 +140,34 @@ export function generateTimelineEventsFromHabits(habits: Habit[]): TimelineEvent
         category: habit.category,
         metadata: {
           streak: habit.streak,
-          longestStreak: habit.longestStreak
-        }
-      })
-    }
-  })
-  
-  return events
+        },
+      }
+
+      return event
+    })
 }
 
+/**
+ * Score diário ponderado. Parâmetros em porcentagem (0-100), exceto os contadores.
+ * Pesos seguem o PRD: medicação 40%, água 25%, refeições 20%, hábitos 15%.
+ */
 export function calculateDailyScore(
+  medicationAdherence: number,
   waterProgress: number,
-  medAdherence: number,
   completedMeals: number,
   plannedMeals: number,
   habitsCompleted: number,
-  totalHabits: number
+  totalHabits: number,
 ): number {
-  const mealProgress = plannedMeals > 0 ? completedMeals / plannedMeals : 0
-  const habitProgress = totalHabits > 0 ? habitsCompleted / totalHabits : 0
-  
+  const mealPct = plannedMeals > 0 ? (completedMeals / plannedMeals) * 100 : 100
+  const habitPct = totalHabits > 0 ? (habitsCompleted / totalHabits) * 100 : 100
+
   const score = Math.round(
-    medAdherence * 0.40 +
-    mealProgress * 0.20 +
-    waterProgress * 0.20 +
-    habitProgress * 0.20
+    medicationAdherence * 0.4 +
+      waterProgress * 0.25 +
+      mealPct * 0.2 +
+      habitPct * 0.15,
   )
-  
+
   return Math.min(100, Math.max(0, score))
 }

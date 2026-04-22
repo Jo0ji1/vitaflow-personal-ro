@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { v4 as uuid } from 'uuid'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -59,7 +60,7 @@ export function RefeicoesView({ onBack }: RefeicoesViewProps) {
     }
 
     const item: MealItem = {
-      id: `item-${Date.now()}`,
+      id: `item-${uuid()}`,
       name: currentItem.name,
       quantity: currentItem.quantity,
       calories: currentItem.calories
@@ -87,7 +88,7 @@ export function RefeicoesView({ onBack }: RefeicoesViewProps) {
     }
 
     const meal: Meal = {
-      id: `meal-${Date.now()}`,
+      id: `meal-${uuid()}`,
       userId: 'current-user',
       date: selectedDate,
       type: newMeal.type,
@@ -119,7 +120,7 @@ export function RefeicoesView({ onBack }: RefeicoesViewProps) {
   const duplicateMeal = (meal: Meal) => {
     const newMeal: Meal = {
       ...meal,
-      id: `meal-${Date.now()}`,
+      id: `meal-${uuid()}`,
       date: selectedDate,
       status: 'pending',
       completedAt: undefined
@@ -247,6 +248,7 @@ export function RefeicoesView({ onBack }: RefeicoesViewProps) {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                aria-label={`Remover ${item.name}`}
                                 onClick={() => removeItemFromMeal(item.id)}
                               >
                                 <Trash size={16} />
@@ -393,6 +395,7 @@ export function RefeicoesView({ onBack }: RefeicoesViewProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label="Duplicar refeição"
                           onClick={() => duplicateMeal(meal)}
                         >
                           <Copy size={16} />
@@ -400,6 +403,7 @@ export function RefeicoesView({ onBack }: RefeicoesViewProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label="Excluir refeição"
                           onClick={() => deleteMeal(meal.id)}
                         >
                           <Trash size={16} />

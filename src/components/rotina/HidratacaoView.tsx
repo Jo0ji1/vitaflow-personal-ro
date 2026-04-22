@@ -1,4 +1,5 @@
 import { useKV } from '@github/spark/hooks'
+import { v4 as uuid } from 'uuid'
 import { WaterTracker } from '@/components/water/WaterTracker'
 import { Button } from '@/components/ui/button'
 import { WaterLog } from '@/lib/types'
@@ -19,7 +20,7 @@ export function HidratacaoView({ onBack }: HidratacaoViewProps) {
   
   const handleAddWater = (amount: number) => {
     const newLog: WaterLog = {
-      id: `water-${Date.now()}`,
+      id: `water-${uuid()}`,
       userId: 'current-user',
       amount,
       timestamp: new Date(),

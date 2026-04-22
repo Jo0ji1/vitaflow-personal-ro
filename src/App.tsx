@@ -1,25 +1,41 @@
-import { useState } from 'react'
+import { lazy, Suspense } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
-import { TimelineView } from '@/components/views/TimelineView'
-import { RotinaView } from '@/components/views/RotinaView'
-import { PlanejarView } from '@/components/views/PlanejarView'
-import { ProgressoView } from '@/components/views/ProgressoView'
-import { PerfilView } from '@/components/views/PerfilView'
 import { BottomNav } from '@/components/navigation/BottomNav'
-import { useKV } from '@github/spark/hooks'
+import { AppLoadingFallback } from '@/components/ui/app-loading'
+
+const TimelineView = lazy(() =>
+  import('@/components/views/TimelineView').then((m) => ({ default: m.TimelineView })),
+)
+const RotinaView = lazy(() =>
+  import('@/components/views/RotinaView').then((m) => ({ default: m.RotinaView })),
+)
+const PlanejarView = lazy(() =>
+  import('@/components/views/PlanejarView').then((m) => ({ default: m.PlanejarView })),
+)
+const ProgressoView = lazy(() =>
+  import('@/components/views/ProgressoView').then((m) => ({ default: m.ProgressoView })),
+)
+const PerfilView = lazy(() =>
+  import('@/components/views/PerfilView').then((m) => ({ default: m.PerfilView })),
+)
 
 function App() {
-  const [activeTab, setActiveTab] = useKV<string>('active-tab', 'hoje')
-
   return (
     <>
-      {activeTab === 'hoje' && <TimelineView />}
-      {activeTab === 'rotina' && <RotinaView />}
-      {activeTab === 'planejar' && <PlanejarView />}
-      {activeTab === 'progresso' && <ProgressoView />}
-      {activeTab === 'perfil' && <PerfilView />}
-      
-      <BottomNav activeTab={activeTab || 'hoje'} onTabChange={setActiveTab} />
+      <Suspense fallback={<AppLoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/hoje" replace />} />
+          <Route path="/hoje" element={<TimelineView />} />
+          <Route path="/rotina/*" element={<RotinaView />} />
+          <Route path="/planejar" element={<PlanejarView />} />
+          <Route path="/progresso" element={<ProgressoView />} />
+          <Route path="/perfil" element={<PerfilView />} />
+          <Route path="*" element={<Navigate to="/hoje" replace />} />
+        </Routes>
+      </Suspense>
+
+      <BottomNav />
       <Toaster />
     </>
   )

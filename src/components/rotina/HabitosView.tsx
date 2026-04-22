@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { v4 as uuid } from 'uuid'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,13 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle, Plus, Fire, Target, Pencil, Trash, Check } from '@phosphor-icons/react'
+import { CheckCircle, Plus, Fire, Pencil, Trash } from '@phosphor-icons/react'
 import { Habit, HabitLog } from '@/lib/types'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 interface HabitosViewProps {
   onBack: () => void
@@ -51,7 +50,7 @@ export function HabitosView({ onBack }: HabitosViewProps) {
     }
 
     const habit: Habit = {
-      id: editingId || `habit-${Date.now()}`,
+      id: editingId || `habit-${uuid()}`,
       userId: 'current-user',
       name: formData.name,
       description: formData.description || undefined,
@@ -154,7 +153,7 @@ export function HabitosView({ onBack }: HabitosViewProps) {
       toast.success(existingLog.completed ? 'Hábito desmarcado' : 'Hábito concluído!')
     } else {
       const newLog: HabitLog = {
-        id: `log-${Date.now()}`,
+        id: `log-${uuid()}`,
         habitId,
         date: today,
         completed: true,
@@ -373,6 +372,7 @@ export function HabitosView({ onBack }: HabitosViewProps) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Editar hábito ${habit.name}`}
                         onClick={() => handleEdit(habit)}
                       >
                         <Pencil size={16} />
@@ -380,6 +380,7 @@ export function HabitosView({ onBack }: HabitosViewProps) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Excluir hábito ${habit.name}`}
                         onClick={() => handleDelete(habit.id)}
                       >
                         <Trash size={16} />

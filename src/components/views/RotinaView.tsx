@@ -23,14 +23,6 @@ export function RotinaView() {
   const [medications] = useKV<Medication[]>('medications', [])
   const [habits] = useKV<Habit[]>('habits', [])
 
-  const getMedicationCount = () => {
-    return (medications || []).filter(m => m.category === 'medication').length
-  }
-
-  const getSupplementCount = () => {
-    return (medications || []).filter(m => m.category === 'supplement' || m.category === 'vitamin').length
-  }
-
   const sections = [
     {
       id: 'medicamentos' as RotinaSection,
