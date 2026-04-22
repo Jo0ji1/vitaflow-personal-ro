@@ -1,50 +1,50 @@
 import { TimelineEvent, Medication, Meal, Habit, EventStatus, EventPriority } from './types'
-import { format, isToday, isPast, isFuture, addMinutes } from 'date-fns'
 
-export function generateTimelineEventsFromMedications(medications: Medication[]): TimelineEvent[] {
-  const events: TimelineEvent[] = []
-  const today = format(new Date(), 'yyyy-MM-dd')
+
+  
+    medication.times.forEach(time =>
+      const scheduledTime = new Date()
   
   medications.forEach(medication => {
     medication.times.forEach(time => {
       const [hours, minutes] = time.split(':').map(Number)
-      const scheduledTime = new Date()
+          status = 'pending'
       scheduledTime.setHours(hours, minutes, 0, 0)
       
-      if (isToday(scheduledTime)) {
-        const now = new Date()
-        let status: EventStatus = 'pending'
-        
-        if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -15)) {
-          status = 'late'
-        } else if (isPast(scheduledTime)) {
-          status = 'pending'
-        }
-        
-        events.push({
-          id: `med-${medication.id}-${time}`,
-          type: 'medication',
-          referenceId: medication.id,
-          title: medication.name,
-          subtitle: `${medication.dosage}${medication.unit}`,
-          scheduledTime,
+          referenceId: medication.i
+          subtitle: `${medicat
           status,
-          priority: medication.category === 'medication' ? 'high' : 'normal',
-          category: medication.category,
-          metadata: {
+        
             instructions: medication.instructions
-          }
         })
-      }
     })
-  })
   
-  return events
+}
+export f
+  const today = forma
+  meals
+    .forEach(meal => {
+      const scheduledTime = new Date(
+      
+      let status: EventStatus = 'pending'
+      if (isPast(schedul
+      }
+      const totalCalories = meal.items.reduce((sum, item) => sum + (item.calo
+      events.push({
+        type: 'meal',
+            instructions: medication.instructions
+        sch
+        })
+       
+    })
+    
+  
+}
 }
 
-export function generateTimelineEventsFromMeals(meals: Meal[]): TimelineEvent[] {
-  const events: TimelineEvent[] = []
-  const today = format(new Date(), 'yyyy-MM-dd')
+  
+    const shouldShowToday = 
+      (habit.frequency.daysOfWeek && habit.frequ
   
   meals
     .filter(meal => meal.date === today && meal.status === 'pending')
@@ -100,67 +100,67 @@ export function generateTimelineEventsFromHabits(habits: Habit[]): TimelineEvent
       const now = new Date()
       let status: EventStatus = 'pending'
       
-      if (isPast(scheduledTime)) {
+
         status = 'late'
-      }
+
       
-      events.push({
+
         id: `habit-${habit.id}`,
-        type: 'habit',
-        referenceId: habit.id,
-        title: habit.name,
-        subtitle: habit.category,
-        scheduledTime,
-        status,
-        priority: 'normal',
-        category: habit.category,
-        metadata: {
-          description: habit.description,
-          streak: habit.streak
-        }
-      })
-    }
-  })
-  
-  return events
-}
 
-function getMealTypeName(type: string): string {
-  const names: Record<string, string> = {
-    'breakfast': 'Café da Manhã',
-    'lunch': 'Almoço',
-    'dinner': 'Jantar',
-    'snack': 'Lanche',
-    'pre-workout': 'Pré-Treino',
-    'post-workout': 'Pós-Treino',
-    'custom': 'Refeição'
-  }
-  return names[type] || type
-}
 
-export function calculateDailyScore(
-  medicationAdherence: number,
-  waterProgress: number,
-  mealsCompleted: number,
-  mealsPlanned: number,
-  habitsCompleted: number,
-  habitsPlanned: number
-): number {
-  const weights = {
-    medication: 0.35,
-    water: 0.20,
-    meals: 0.20,
-    habits: 0.25
-  }
-  
-  const mealScore = mealsPlanned > 0 ? (mealsCompleted / mealsPlanned) * 100 : 100
-  const habitScore = habitsPlanned > 0 ? (habitsCompleted / habitsPlanned) * 100 : 100
-  
-  const totalScore = 
-    (medicationAdherence * weights.medication) +
-    (waterProgress * weights.water) +
-    (mealScore * weights.meals) +
-    (habitScore * weights.habits)
-  
-  return Math.round(totalScore)
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
