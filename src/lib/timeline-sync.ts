@@ -10,90 +10,83 @@ function getMealTypeName(type: string): string {
     'pre-workout': 'Pré-Treino',
     'post-workout': 'Pós-Treino',
     custom: 'Refeição'
+  }
+  return names[type] || 'Refeição'
 }
-export function generateTimelineEv
- 
 
+export function generateTimelineEventsFromMedications(medications: Medication[]): TimelineEvent[] {
+  const events: TimelineEvent[] = []
+  const today = format(new Date(), 'yyyy-MM-dd')
+  
+  medications.forEach(medication => {
+    medication.times.forEach(time => {
+      const scheduledTime = new Date()
       const [hours, minutes] = time.split(':').map(Number)
-      scheduledTime.setHours(hours, 
+      scheduledTime.setHours(hours, minutes, 0, 0)
       const now = new Date()
-  
+      
+      let status: EventStatus = 'pending'
+      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30)) {
         status = 'late'
+      }
       
-      
-        id: `medication-${medication.i
+      events.push({
+        id: `medication-${medication.id}-${time}`,
+        type: 'medication',
         referenceId: medication.id,
-      
+        title: medication.name,
+        subtitle: `${medication.dosage} ${medication.unit}`,
+        scheduledTime,
         status,
+        priority: 'high',
         category: medication.category,
-      
+        metadata: {
           instructions: medication.instructions
+        }
       })
+    })
   })
-  retu
-
-  cons
   
-    .filter(meal => meal.date === today && meal.st
-      const [hours, minutes
-      scheduledTime.setHours(hours,
+  return events
+}
+
+export function generateTimelineEventsFromMeals(meals: Meal[]): TimelineEvent[] {
+  const events: TimelineEvent[] = []
+  const today = format(new Date(), 'yyyy-MM-dd')
+  
+  const todaysMeals = meals
+    .filter(meal => meal.date === today && meal.status !== 'completed')
+    .map(meal => {
+      const scheduledTime = new Date()
+      const [hours, minutes] = meal.scheduledTime.split(':').map(Number)
+      scheduledTime.setHours(hours, minutes, 0, 0)
       const now = new Date()
       
-        status = 'late
+      let status: EventStatus = meal.status
+      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30) && status === 'pending') {
+        status = 'late'
+      }
       
+      const totalCalories = meal.items.reduce((sum, item) => sum + (item.calories || 0), 0)
       
+      return {
         id: `meal-${meal.id}`,
-        referenceId
-        subtitle: totalCalories > 0 
+        type: 'meal' as const,
+        referenceId: meal.id,
+        title: getMealTypeName(meal.type),
+        subtitle: totalCalories > 0 ? `${totalCalories} calorias` : `${meal.items.length} itens`,
+        scheduledTime,
         status,
+        priority: 'normal' as EventPriority,
         category: meal.type,
-         
-        
-    })
-  re
-
-  const events:
- 
-
-      habit.frequency.type === 'daily' ||
-    
-      const [hours, minutes] = habit.reminderTim
-  
-      c
-      
-        status = 'late
-      
-        id: `habit-${habit.id}`,
-        referenceId: habit.id,
-      
-        status,
-        category: habit.category,
-      
+        metadata: {
+          items: meal.items
         }
-    }
+      }
+    })
   
+  return todaysMeals
 }
-export function calculateDailyScore(
-  wate
-  plannedMeals: num
-  totalHabits: number
-  const mealProgress 
-  
-    medAdherence * 0.40 +
-    mealProgress * 0.20 +
-  )
-  return Math.m
-
-
-
-
-
-
-
-
-
-
-
 
 export function generateTimelineEventsFromHabits(habits: Habit[]): TimelineEvent[] {
   const events: TimelineEvent[] = []
@@ -136,4 +129,25 @@ export function generateTimelineEventsFromHabits(habits: Habit[]): TimelineEvent
   })
   
   return events
+}
+
+export function calculateDailyScore(
+  waterProgress: number,
+  medAdherence: number,
+  completedMeals: number,
+  plannedMeals: number,
+  habitsCompleted: number,
+  totalHabits: number
+): number {
+  const mealProgress = plannedMeals > 0 ? completedMeals / plannedMeals : 0
+  const habitProgress = totalHabits > 0 ? habitsCompleted / totalHabits : 0
+  
+  const score = Math.round(
+    medAdherence * 0.40 +
+    mealProgress * 0.20 +
+    waterProgress * 0.20 +
+    habitProgress * 0.20
+  )
+  
+  return Math.min(100, Math.max(0, score))
 }
