@@ -5,29 +5,22 @@ import { WaterTracker } from '@/components/water/WaterTracker'
 import { ScoreDisplay } from '@/components/dashboard/ScoreDisplay'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { TimelineEvent, WaterLog } from '@/lib/types'
-import { getGreeting, sortTimelineEvents, getTodayDateString, calculateWaterProgress } from '@/lib/timeline-helpers'
-import { generateMockTimelineEvents, generateMockWaterLogs } from '@/lib/mock-data'
+import { WaterLog, Medication, Meal, Habit, HabitLog } from '@/lib/types'
+import { sortTimelineEvents, getTodayDateString, calculateWaterProgress } from '@/lib/timeline-helpers'
+import { generateTimelineEventsFromMedications, generateTimelineEventsFromMeals, generateTimelineEventsFromHabits, calculateDailyScore } from '@/lib/timeline-sync'
 import { ArrowClockwise, Sparkle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function TimelineView() {
-  const [events, setEvents] = useKV<TimelineEvent[]>('timeline-events', [])
+  const [medications] = useKV<Medication[]>('medications', [])
+  const [meals, setMeals] = useKV<Meal[]>('meals', [])
+  const [habits] = useKV<Habit[]>('habits', [])
+  const [habitLogs, setHabitLogs] = useKV<HabitLog[]>('habit-logs', [])
   const [waterLogs, setWaterLogs] = useKV<WaterLog[]>('water-logs-today', [])
   const [waterGoal] = useKV<number>('water-goal', 2500)
-  const [todayScore] = useKV<number>('today-score', 0)
   const [, setLastSync] = useState(new Date())
-  const [hasInitialized, setHasInitialized] = useState(false)
-
-  useEffect(() => {
-    if (!hasInitialized && (!events || events.length === 0)) {
-      setEvents(generateMockTimelineEvents())
-      setWaterLogs(generateMockWaterLogs())
-      setHasInitialized(true)
-    }
-  }, [hasInitialized, events, setEvents, setWaterLogs])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -35,6 +28,39 @@ export function TimelineView() {
     }, 60000)
     return () => clearInterval(interval)
   }, [])
+
+  const events = useMemo(() => {
+    const medEvents = generateTimelineEventsFromMedications(medications || [])
+    const mealEvents = generateTimelineEventsFromMeals(meals || [])
+    const habitEvents = generateTimelineEventsFromHabits(habits || [])
+    
+    return [...medEvents, ...mealEvents, ...habitEvents]
+  }, [medications, meals, habits])
+  
+  const todayScore = useMemo(() => {
+    const today = getTodayDateString()
+    const completedMeds = events.filter(e => e.type === 'medication' && e.status === 'completed').length
+    const totalMeds = events.filter(e => e.type === 'medication').length
+    const medAdherence = totalMeds > 0 ? (completedMeds / totalMeds) * 100 : 100
+    
+    const waterProgress = calculateWaterProgress(waterLogs || [], waterGoal || 2500)
+    
+    const todayMeals = (meals || []).filter(m => m.date === today)
+    const completedMeals = todayMeals.filter(m => m.status === 'completed').length
+    const plannedMeals = todayMeals.length
+    
+    const completedHabits = (habitLogs || []).filter(log => log.date === today && log.completed).length
+    const totalHabits = events.filter(e => e.type === 'habit').length
+    
+    return calculateDailyScore(
+      medAdherence,
+      waterProgress,
+      completedMeals,
+      plannedMeals,
+      completedHabits,
+      totalHabits
+    )
+  }, [events, waterLogs, waterGoal, meals, habitLogs])
 
   const now = new Date()
   
@@ -47,45 +73,70 @@ export function TimelineView() {
   const nextEvent = pendingEvents[0]
   
   const handleCompleteEvent = (id: string) => {
-    setEvents((current) => 
-      (current || []).map(event => 
-        event.id === id 
-          ? { ...event, status: 'completed' }
-          : event
+    const event = events.find(e => e.id === id)
+    if (!event) return
+    
+    if (event.type === 'meal') {
+      setMeals((current) => 
+        (current || []).map(meal => 
+          meal.id === event.referenceId
+            ? { ...meal, status: 'completed', completedAt: new Date() }
+            : meal
+        )
       )
-    )
+    } else if (event.type === 'habit') {
+      const today = getTodayDateString()
+      const existingLog = (habitLogs || []).find(log => 
+        log.habitId === event.referenceId && log.date === today
+      )
+      
+      if (existingLog) {
+        setHabitLogs((current) =>
+          (current || []).map(log =>
+            log.id === existingLog.id
+              ? { ...log, completed: true, completedAt: new Date() }
+              : log
+          )
+        )
+      } else {
+        const newLog: HabitLog = {
+          id: `log-${Date.now()}`,
+          habitId: event.referenceId,
+          date: today,
+          completed: true,
+          completedAt: new Date()
+        }
+        setHabitLogs((current) => [...(current || []), newLog])
+      }
+    }
+    
     toast.success('Item concluído!', {
       description: 'Ótimo trabalho mantendo sua rotina.'
     })
   }
   
   const handleSkipEvent = (id: string) => {
-    setEvents((current) => 
-      (current || []).map(event => 
-        event.id === id 
-          ? { ...event, status: 'skipped' }
-          : event
+    const event = events.find(e => e.id === id)
+    if (!event) return
+    
+    if (event.type === 'meal') {
+      setMeals((current) => 
+        (current || []).map(meal => 
+          meal.id === event.referenceId
+            ? { ...meal, status: 'skipped' }
+            : meal
+        )
       )
-    )
+    }
+    
     toast('Item pulado', {
       description: 'Registrado como pulado.'
     })
   }
   
   const handlePostponeEvent = (id: string) => {
-    setEvents((current) => 
-      (current || []).map(event => 
-        event.id === id 
-          ? { 
-              ...event, 
-              status: 'postponed',
-              scheduledTime: new Date(new Date(event.scheduledTime).getTime() + 30 * 60000)
-            }
-          : event
-      )
-    )
-    toast.info('Item reagendado', {
-      description: 'Adiado em 30 minutos.'
+    toast.info('Função de reagendar em desenvolvimento', {
+      description: 'Em breve você poderá reagendar itens.'
     })
   }
   
@@ -106,7 +157,12 @@ export function TimelineView() {
     })
   }
   
-  const waterProgress = calculateWaterProgress(waterLogs || [], waterGoal || 2500)
+  const getGreeting = () => {
+    const hour = now.getHours()
+    if (hour < 12) return 'Bom dia!'
+    if (hour < 18) return 'Boa tarde!'
+    return 'Boa noite!'
+  }
   
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -227,9 +283,20 @@ export function TimelineView() {
               <p className="text-muted-foreground mb-2">
                 Nenhum evento na timeline hoje
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 Configure sua rotina para começar
               </p>
+              <div className="flex flex-col gap-2 max-w-xs mx-auto">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Vá para a aba "Rotina" para adicionar:
+                </p>
+                <ul className="text-sm text-muted-foreground text-left space-y-1">
+                  <li>• Medicamentos e suplementos</li>
+                  <li>• Hábitos diários</li>
+                  <li>• Refeições planejadas</li>
+                  <li>• Treinos</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>
@@ -237,4 +304,3 @@ export function TimelineView() {
     </div>
   )
 }
-
