@@ -1,50 +1,63 @@
 import { TimelineEvent, Medication, Meal, Habit, EventStatus, EventPriority } from './types'
+import { format, isPast, addMinutes } from 'date-fns'
 
+function getMealTypeName(type: string): string {
+  const names: Record<string, string> = {
+    breakfast: 'Café da Manhã',
+    lunch: 'Almoço',
+    dinner: 'Jantar',
+    snack: 'Lanche',
+    'pre-workout': 'Pré-Treino',
+    'post-workout': 'Pós-Treino',
+    custom: 'Refeição'
+  }
+  return names[type] || 'Refeição'
+}
 
-  
-    medication.times.forEach(time =>
-      const scheduledTime = new Date()
+export function generateTimelineEventsFromMedications(medications: Medication[]): TimelineEvent[] {
+  const events: TimelineEvent[] = []
+  const today = format(new Date(), 'yyyy-MM-dd')
   
   medications.forEach(medication => {
     medication.times.forEach(time => {
       const [hours, minutes] = time.split(':').map(Number)
-          status = 'pending'
+      const scheduledTime = new Date()
       scheduledTime.setHours(hours, minutes, 0, 0)
       
-          referenceId: medication.i
-          subtitle: `${medicat
-          status,
-        
-            instructions: medication.instructions
-        })
-    })
-  
-}
-export f
-  const today = forma
-  meals
-    .forEach(meal => {
-      const scheduledTime = new Date(
-      
+      const now = new Date()
       let status: EventStatus = 'pending'
-      if (isPast(schedul
+      
+      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30)) {
+        status = 'late'
       }
-      const totalCalories = meal.items.reduce((sum, item) => sum + (item.calo
+      
+      const priority: EventPriority = medication.category === 'medication' ? 'critical' : 'high'
+      
       events.push({
-        type: 'meal',
-            instructions: medication.instructions
-        sch
-        })
-       
+        id: `medication-${medication.id}-${time}`,
+        type: 'medication',
+        referenceId: medication.id,
+        title: `${medication.name} ${medication.dosage}`,
+        subtitle: `${medication.unit}${medication.instructions ? ` - ${medication.instructions}` : ''}`,
+        scheduledTime,
+        status,
+        priority,
+        category: medication.category,
+        metadata: {
+          dosage: medication.dosage,
+          unit: medication.unit,
+          instructions: medication.instructions
+        }
+      })
     })
-    
+  })
   
-}
+  return events
 }
 
-  
-    const shouldShowToday = 
-      (habit.frequency.daysOfWeek && habit.frequ
+export function generateTimelineEventsFromMeals(meals: Meal[]): TimelineEvent[] {
+  const events: TimelineEvent[] = []
+  const today = format(new Date(), 'yyyy-MM-dd')
   
   meals
     .filter(meal => meal.date === today && meal.status === 'pending')
@@ -100,67 +113,48 @@ export function generateTimelineEventsFromHabits(habits: Habit[]): TimelineEvent
       const now = new Date()
       let status: EventStatus = 'pending'
       
-
+      if (isPast(scheduledTime) && scheduledTime < addMinutes(now, -30)) {
         status = 'late'
-
+      }
       
-
+      events.push({
         id: `habit-${habit.id}`,
+        type: 'habit',
+        referenceId: habit.id,
+        title: habit.name,
+        subtitle: habit.description,
+        scheduledTime,
+        status,
+        priority: 'normal',
+        category: habit.category,
+        metadata: {
+          streak: habit.streak,
+          longestStreak: habit.longestStreak
+        }
+      })
+    }
+  })
+  
+  return events
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export function calculateDailyScore(
+  medAdherence: number,
+  waterProgress: number,
+  completedMeals: number,
+  plannedMeals: number,
+  completedHabits: number,
+  totalHabits: number
+): number {
+  const mealProgress = plannedMeals > 0 ? (completedMeals / plannedMeals) * 100 : 100
+  const habitProgress = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 100
+  
+  const totalScore = Math.round(
+    medAdherence * 0.40 +
+    waterProgress * 0.25 +
+    mealProgress * 0.20 +
+    habitProgress * 0.15
+  )
+  
+  return Math.min(totalScore, 100)
+}
